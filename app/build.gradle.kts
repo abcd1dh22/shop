@@ -54,6 +54,9 @@ android {
 
     buildFeatures { compose = true }
 
+    // Lint runs separately in CI (ci.yml); don't let lintVital block release builds.
+    lint { checkReleaseBuilds = false }
+
     packaging { resources { excludes += "/META-INF/{AL2.0,LGPL2.1}" } }
 }
 
