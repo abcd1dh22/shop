@@ -76,7 +76,7 @@ jobs:
           sha256sum "hawa-traders-manager-${{ steps.ver.outputs.name }}.apk" > SHA256SUMS.txt
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: hawa-traders-release-apk
           path: |
