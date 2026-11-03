@@ -13,6 +13,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -32,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.hawatraders.manager.ui.components.IconLabel
 import com.hawatraders.manager.ui.components.PasswordField
 import com.hawatraders.manager.ui.components.SecureScreenEffect
 import com.hawatraders.manager.util.Strings
@@ -108,7 +110,7 @@ fun ChangePasswordScreen(
                 modifier = Modifier.fillMaxWidth().height(56.dp),
             ) {
                 if (vm.busy) CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp)
-                else Text(Strings.changeAction, style = MaterialTheme.typography.titleMedium)
+                else IconLabel(Icons.Filled.Check, Strings.changeAction)
             }
         }
     }

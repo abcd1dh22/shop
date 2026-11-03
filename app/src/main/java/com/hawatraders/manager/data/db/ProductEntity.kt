@@ -27,6 +27,8 @@ data class ProductEntity(
     @ColumnInfo(defaultValue = "0") val priceUpdatedAt: Long = System.currentTimeMillis(),
     @ColumnInfo(defaultValue = "0") val isFavorite: Boolean = false,
     @ColumnInfo(defaultValue = "''") val note: String = "",
+    /** Added in database version 3; empty when the product has no barcode. */
+    @ColumnInfo(defaultValue = "''") val barcode: String = "",
 )
 
 class Converters {

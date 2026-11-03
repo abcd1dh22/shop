@@ -84,6 +84,8 @@ dependencies {
     implementation(libs.androidx.exifinterface)
     implementation(libs.androidx.biometric)
     implementation(libs.androidx.fragment.ktx)
+    implementation(libs.zxing.embedded)
+    implementation(libs.tesseract)
     implementation(libs.coil.compose)
     implementation(libs.kotlinx.coroutines.android)
 }

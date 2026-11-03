@@ -22,6 +22,7 @@ object AppViewModelProvider {
         initializer { ImportViewModel(container().backupManager) }
         initializer { BulkPriceViewModel(container().productRepository) }
         initializer { ProductImportViewModel(container().productImporter) }
+        initializer { TextScanViewModel(container().textScanner, container().productRepository) }
     }
 
     private fun CreationExtras.container(): AppContainer =

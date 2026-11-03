@@ -20,6 +20,8 @@ data class SearchUiState(
     val products: List<ProductEntity> = emptyList(),
     val totalCount: Int = 0,
     val isLoading: Boolean = true,
+    val counts: Map<Category, Int> = emptyMap(),
+    val favoriteCount: Int = 0,
 )
 
 /** Search text, filters and the selected product survive rotation and process death. */
@@ -49,7 +51,15 @@ class SearchViewModel(
             _favoritesOnly,
         ) { q, c, f -> Triple(q, c, f) }
             .flatMapLatest { (q, c, f) -> repo.observeSearch(q, c, f) }
-            .combine(repo.observeCount()) { list, count -> SearchUiState(list, count, isLoading = false) }
+            .combine(repo.observeAll()) { list, all ->
+                SearchUiState(
+                    products = list,
+                    totalCount = all.size,
+                    isLoading = false,
+                    counts = all.groupingBy { it.category }.eachCount(),
+                    favoriteCount = all.count { it.isFavorite },
+                )
+            }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SearchUiState())
 
     fun onQueryChange(value: String) {

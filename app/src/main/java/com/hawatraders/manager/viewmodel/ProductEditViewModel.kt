@@ -46,6 +46,7 @@ class ProductEditViewModel(
     var unit by handle.saveable { mutableStateOf("") }
     var isFavorite by handle.saveable { mutableStateOf(false) }
     var note by handle.saveable { mutableStateOf("") }
+    var barcode by handle.saveable { mutableStateOf("") }
     var priceText by handle.saveable { mutableStateOf("") }
     var existingImage by handle.saveable { mutableStateOf("") }
     var stagedImagePath by handle.saveable { mutableStateOf("") }
@@ -76,6 +77,7 @@ class ProductEditViewModel(
                         unit = p.unit
                         isFavorite = p.isFavorite
                         note = p.note
+                        barcode = p.barcode
                         priceText = Bn.editable(p.price)
                         existingImage = p.imagePath ?: ""
                         loaded = true
@@ -137,6 +139,14 @@ class ProductEditViewModel(
         saving = true
         viewModelScope.launch {
             try {
+                val code = barcode.trim()
+                if (code.isNotEmpty()) {
+                    val other = repo.findByBarcode(code)
+                    if (other != null && other.id != productId) {
+                        message = Strings.barcodeDuplicate
+                        return@launch
+                    }
+                }
                 val entity = ProductEntity(
                     id = if (isNew) 0 else productId,
                     nameBn = nameBn.trim(),
@@ -148,6 +158,7 @@ class ProductEditViewModel(
                     imagePath = existingImage.ifBlank { null },
                     isFavorite = isFavorite,
                     note = note.trim(),
+                    barcode = code,
                 )
                 repo.save(entity, stagedImagePath.ifBlank { null }, removeExisting)
                 stagedImagePath = ""

@@ -22,6 +22,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.PriceChange
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.StarBorder
@@ -252,10 +255,18 @@ private fun ManageRow(
                         else MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                TextButton(onClick = onEdit, modifier = Modifier.height(48.dp)) { Text(Strings.edit) }
-                TextButton(onClick = onPrice, modifier = Modifier.height(48.dp)) { Text(Strings.quickPrice) }
-                TextButton(onClick = onDelete, modifier = Modifier.height(48.dp)) {
-                    Text(Strings.delete, color = MaterialTheme.colorScheme.error)
+                IconButton(onClick = onEdit, modifier = Modifier.size(48.dp)) {
+                    Icon(Icons.Filled.Edit, contentDescription = Strings.edit)
+                }
+                IconButton(onClick = onPrice, modifier = Modifier.size(48.dp)) {
+                    Icon(Icons.Filled.PriceChange, contentDescription = Strings.quickPrice)
+                }
+                IconButton(onClick = onDelete, modifier = Modifier.size(48.dp)) {
+                    Icon(
+                        Icons.Filled.Delete,
+                        contentDescription = Strings.delete,
+                        tint = MaterialTheme.colorScheme.error,
+                    )
                 }
             }
         }

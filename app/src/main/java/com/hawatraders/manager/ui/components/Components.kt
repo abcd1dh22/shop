@@ -1,6 +1,15 @@
 package com.hawatraders.manager.ui.components
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.view.WindowManager
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
+import com.hawatraders.manager.util.Strings
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.ColumnScope
@@ -282,6 +291,46 @@ fun HeroHeader(
             }
         }
     }
+}
+
+/**
+ * Returns a function that runs [onGranted] once the CAMERA permission is available, asking for it
+ * first when needed. The permission is declared (the barcode scanner needs it), and an app that
+ * declares CAMERA must hold it before it may start the system camera, so both camera uses go through here.
+ */
+@Composable
+fun rememberCameraGate(onGranted: () -> Unit): () -> Unit {
+    val context = LocalContext.current
+    val session = LocalContainer.current.session
+    val current by rememberUpdatedState(onGranted)
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { ok ->
+        session.externalLaunch = false
+        if (ok) current() else Toast.makeText(context, Strings.cameraDenied, Toast.LENGTH_LONG).show()
+    }
+    return remember(launcher, context) {
+        {
+            val has = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
+                PackageManager.PERMISSION_GRANTED
+            if (has) {
+                current()
+            } else {
+                session.externalLaunch = true
+                try {
+                    launcher.launch(Manifest.permission.CAMERA)
+                } catch (e: Exception) {
+                    session.externalLaunch = false
+                }
+            }
+        }
+    }
+}
+
+/** Leading icon + label for use inside Button / OutlinedButton content. */
+@Composable
+fun IconLabel(icon: ImageVector, text: String) {
+    Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp))
+    Spacer(Modifier.width(8.dp))
+    Text(text)
 }
 
 /** Round tinted icon container used in menus. */

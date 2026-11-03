@@ -75,6 +75,7 @@ class BackupManager(
                             put("priceUpdatedAt", p.priceUpdatedAt)
                             put("isFavorite", p.isFavorite)
                             put("note", p.note)
+                            put("barcode", p.barcode)
                         }
                     )
                 }
@@ -271,6 +272,7 @@ class BackupManager(
                         priceUpdatedAt = o.optLong("priceUpdatedAt", o.optLong("updatedAt", now)),
                         isFavorite = o.optBoolean("isFavorite", false),
                         note = o.optString("note", "").take(2000),
+                        barcode = o.optString("barcode", "").take(100),
                     )
                 )
             }

@@ -24,6 +24,8 @@ class ProductRepository(
     ): Flow<List<ProductEntity>> =
         dao.search(SearchQuery.toLikePattern(query), category?.key, favoritesOnly)
 
+    suspend fun findByBarcode(code: String): ProductEntity? = dao.findByBarcode(code.trim())
+
     suspend fun getById(id: Long): ProductEntity? = dao.getById(id)
 
     suspend fun getAll(): List<ProductEntity> = dao.getAll()

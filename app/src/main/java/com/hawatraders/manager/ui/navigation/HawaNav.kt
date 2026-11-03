@@ -5,12 +5,46 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.hawatraders.manager.ui.components.ScanMenuSheet
+import com.hawatraders.manager.ui.components.TextScanDialogs
+import com.hawatraders.manager.viewmodel.AppViewModelProvider
+import com.hawatraders.manager.viewmodel.TextScanViewModel
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.filled.QrCodeScanner
+import androidx.compose.material3.FabPosition
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FloatingActionButtonDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.unit.dp
+import com.hawatraders.manager.ui.components.rememberCameraGate
+import com.hawatraders.manager.ui.screens.ScanOutcome
+import com.journeyapps.barcodescanner.ScanContract
+import com.journeyapps.barcodescanner.ScanOptions
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -61,7 +95,7 @@ object Routes {
     val protectedScreens = setOf(PRODUCTS, EDIT_PATTERN, CHANGE_PASSWORD, BACKUP, BULK, IMPORT_PRODUCTS)
 }
 
-private data class Tab(val route: String, val label: String, val icon: ImageVector)
+private data class Tab(val route: String, val label: String, val icon: ImageVector, val selectedIcon: ImageVector)
 
 @Composable
 fun HawaTradersApp(container: AppContainer) {
@@ -97,13 +131,118 @@ private fun AppScaffold(container: AppContainer) {
     LifecycleEventEffect(Lifecycle.Event.ON_START) { session.externalLaunch = false }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { session.externalLaunch = false }
 
+    // ---- Barcode scan (centre button) ----
+    val scope = rememberCoroutineScope()
+    var scanOutcome by remember { mutableStateOf<ScanOutcome?>(null) }
+    val scanLauncher = rememberLauncherForActivityResult(ScanContract()) { result ->
+        session.externalLaunch = false
+        val code = result.contents?.trim().orEmpty()
+        if (code.isNotEmpty()) {
+            scope.launch {
+                val product = try {
+                    container.productRepository.findByBarcode(code)
+                } catch (e: Exception) {
+                    null
+                }
+                // The Search screen is always the root of the back stack.
+                if (route != Routes.SEARCH) navController.popBackStack(Routes.SEARCH, inclusive = false)
+                scanOutcome = if (product != null) ScanOutcome.Found(product.id) else ScanOutcome.NotFound
+            }
+        }
+    }
+    val scanGate = rememberCameraGate {
+        session.externalLaunch = true
+        try {
+            scanLauncher.launch(
+                ScanOptions()
+                    .setPrompt(Strings.scanPrompt)
+                    .setBeepEnabled(false)
+                    .setOrientationLocked(false)
+            )
+        } catch (e: Exception) {
+            session.externalLaunch = false
+        }
+    }
+
+    // ---- Label-text scan (photo -> OCR -> matching products) ----
+    val textVm: TextScanViewModel = viewModel(factory = AppViewModelProvider.Factory)
+    var showScanMenu by remember { mutableStateOf(false) }
+    var cameraUri by rememberSaveable { mutableStateOf<Uri?>(null) }
+    val photoLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { ok ->
+        session.externalLaunch = false
+        val uri = cameraUri
+        cameraUri = null
+        if (ok && uri != null) textVm.process(uri) else container.imageStore.clearCameraTemp()
+    }
+    val photoGate = rememberCameraGate {
+        val uri = container.imageStore.newCameraUri()
+        cameraUri = uri
+        session.externalLaunch = true
+        try {
+            photoLauncher.launch(uri)
+        } catch (e: Exception) {
+            session.externalLaunch = false
+        }
+    }
+    fun finishTextScan(outcome: ScanOutcome?) {
+        textVm.dismiss()
+        container.imageStore.clearCameraTemp()
+        if (outcome != null) {
+            if (route != Routes.SEARCH) navController.popBackStack(Routes.SEARCH, inclusive = false)
+            scanOutcome = outcome
+        }
+    }
+
     val tabs = listOf(
-        Tab(Routes.SEARCH, Strings.tabSearch, Icons.Filled.Search),
-        Tab(Routes.SETTINGS, Strings.tabSettings, Icons.Filled.Settings),
+        Tab(Routes.SEARCH, Strings.tabSearch, Icons.Outlined.Search, Icons.Filled.Search),
+        Tab(Routes.SETTINGS, Strings.tabSettings, Icons.Outlined.Settings, Icons.Filled.Settings),
     )
     val showBar = route == Routes.SEARCH || route == Routes.SETTINGS
 
+    if (showScanMenu) {
+        ScanMenuSheet(
+            onBarcode = { showScanMenu = false; scanGate() },
+            onText = { showScanMenu = false; photoGate() },
+            onDismiss = { showScanMenu = false },
+        )
+    }
+    TextScanDialogs(
+        state = textVm.state,
+        onPick = { id -> finishTextScan(ScanOutcome.Found(id)) },
+        onSearchText = { text -> finishTextScan(ScanOutcome.Query(text)) },
+        onDismiss = { finishTextScan(null) },
+    )
+
     Scaffold(
+        floatingActionButton = {
+            if (showBar) {
+                // Centre scan button: a ring in the page colour cuts a notch into the bar.
+                Box(
+                    modifier = Modifier
+                        .offset(y = 40.dp)
+                        .size(84.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.background),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    FloatingActionButton(
+                        onClick = { showScanMenu = true },
+                        shape = CircleShape,
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                        elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 6.dp),
+                        modifier = Modifier.size(68.dp),
+                    ) {
+                        Icon(
+                            Icons.Filled.QrCodeScanner,
+                            contentDescription = Strings.scanLabel,
+                            modifier = Modifier.size(34.dp),
+                        )
+                    }
+                }
+            }
+        },
+        floatingActionButtonPosition = FabPosition.Center,
         bottomBar = {
             AnimatedVisibility(
                 visible = showBar,
@@ -111,7 +250,20 @@ private fun AppScaffold(container: AppContainer) {
                 exit = shrinkVertically() + fadeOut(),
             ) {
                 NavigationBar {
-                    tabs.forEach { tab ->
+                    tabs.forEachIndexed { index, tab ->
+                        if (index == 1) {
+                            // Empty slot under the centre scan button.
+                            NavigationBarItem(
+                                selected = false,
+                                onClick = {},
+                                enabled = false,
+                                icon = { Box(Modifier.size(24.dp)) },
+                                label = { Text(Strings.scanLabel) },
+                                colors = NavigationBarItemDefaults.colors(
+                                    disabledTextColor = MaterialTheme.colorScheme.primary,
+                                ),
+                            )
+                        }
                         NavigationBarItem(
                             selected = route == tab.route,
                             onClick = {
@@ -123,7 +275,12 @@ private fun AppScaffold(container: AppContainer) {
                                     }
                                 }
                             },
-                            icon = { Icon(tab.icon, contentDescription = null) },
+                            icon = {
+                                Icon(
+                                    if (route == tab.route) tab.selectedIcon else tab.icon,
+                                    contentDescription = null,
+                                )
+                            },
                             label = { Text(tab.label) },
                         )
                     }
@@ -137,7 +294,9 @@ private fun AppScaffold(container: AppContainer) {
             startDestination = Routes.SEARCH,
             modifier = Modifier.padding(padding).consumeWindowInsets(padding),
         ) {
-            composable(Routes.SEARCH) { SearchScreen() }
+            composable(Routes.SEARCH) {
+                SearchScreen(scanOutcome = scanOutcome, onScanHandled = { scanOutcome = null })
+            }
             composable(Routes.SETTINGS) {
                 SettingsScreen(
                     onAddProduct = { navController.navigate(Routes.EDIT) },

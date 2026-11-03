@@ -27,6 +27,8 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.PhotoLibrary
+import androidx.compose.material.icons.filled.QrCodeScanner
+import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
@@ -65,6 +67,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.hawatraders.manager.data.db.Category
 import com.hawatraders.manager.ui.components.FileImage
 import com.hawatraders.manager.ui.components.FormCard
+import com.hawatraders.manager.ui.components.IconLabel
+import com.hawatraders.manager.ui.components.rememberCameraGate
+import com.journeyapps.barcodescanner.ScanContract
+import com.journeyapps.barcodescanner.ScanOptions
 import com.hawatraders.manager.ui.components.LocalContainer
 import com.hawatraders.manager.util.Strings
 import com.hawatraders.manager.viewmodel.AppViewModelProvider
@@ -92,6 +98,34 @@ fun ProductEditScreen(
     val galleryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         session.externalLaunch = false
         if (uri != null) vm.onImagePicked(uri)
+    }
+
+    val scanLauncher = rememberLauncherForActivityResult(ScanContract()) { result ->
+        session.externalLaunch = false
+        result.contents?.let { vm.barcode = it.trim().take(100) }
+    }
+    val scanGate = rememberCameraGate {
+        session.externalLaunch = true
+        try {
+            scanLauncher.launch(
+                ScanOptions()
+                    .setPrompt(Strings.scanPrompt)
+                    .setBeepEnabled(false)
+                    .setOrientationLocked(false)
+            )
+        } catch (e: Exception) {
+            session.externalLaunch = false
+        }
+    }
+    val photoGate = rememberCameraGate {
+        val uri = container.imageStore.newCameraUri()
+        cameraUri = uri
+        session.externalLaunch = true
+        try {
+            cameraLauncher.launch(uri)
+        } catch (e: Exception) {
+            session.externalLaunch = false
+        }
     }
 
     LaunchedEffect(vm.saved) { if (vm.saved) onBack() }
@@ -158,16 +192,7 @@ fun ProductEditScreen(
                     Spacer(Modifier.height(12.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedButton(
-                            onClick = {
-                                val uri = container.imageStore.newCameraUri()
-                                cameraUri = uri
-                                session.externalLaunch = true
-                                try {
-                                    cameraLauncher.launch(uri)
-                                } catch (e: Exception) {
-                                    session.externalLaunch = false
-                                }
-                            },
+                            onClick = photoGate,
                             enabled = !vm.imageBusy,
                             shape = RoundedCornerShape(14.dp),
                             modifier = Modifier.height(48.dp),
@@ -321,6 +346,23 @@ fun ProductEditScreen(
                 }
             }
 
+            // --- Barcode ---
+            FormCard(Strings.sectionBarcode) {
+                OutlinedTextField(
+                    value = vm.barcode,
+                    onValueChange = { if (it.length <= 100) vm.barcode = it.filter { c -> !c.isWhitespace() } },
+                    label = { Text(Strings.barcodeHint) },
+                    singleLine = true,
+                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                OutlinedButton(
+                    onClick = scanGate,
+                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                ) { IconLabel(Icons.Filled.QrCodeScanner, Strings.barcodeScanAction) }
+            }
+
             // --- Usage note ---
             FormCard(Strings.sectionNote) {
                 OutlinedTextField(
@@ -341,7 +383,7 @@ fun ProductEditScreen(
                 modifier = Modifier.fillMaxWidth().height(56.dp),
             ) {
                 if (vm.saving) CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp)
-                else Text(Strings.save, style = MaterialTheme.typography.titleMedium)
+                else IconLabel(Icons.Filled.Save, Strings.save)
             }
             Spacer(Modifier.height(16.dp))
         }

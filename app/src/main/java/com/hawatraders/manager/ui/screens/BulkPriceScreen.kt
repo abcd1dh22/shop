@@ -16,6 +16,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.PriceChange
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -45,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.hawatraders.manager.data.db.Category
 import com.hawatraders.manager.ui.components.FormCard
+import com.hawatraders.manager.ui.components.IconLabel
 import com.hawatraders.manager.util.Bn
 import com.hawatraders.manager.util.Strings
 import com.hawatraders.manager.viewmodel.AppViewModelProvider
@@ -200,7 +202,7 @@ fun BulkPriceScreen(
                 enabled = canApply,
                 shape = RoundedCornerShape(16.dp),
                 modifier = Modifier.fillMaxWidth().height(56.dp),
-            ) { Text(Strings.bulkApply, style = MaterialTheme.typography.titleMedium) }
+            ) { IconLabel(Icons.Filled.PriceChange, Strings.bulkApply) }
         }
     }
 

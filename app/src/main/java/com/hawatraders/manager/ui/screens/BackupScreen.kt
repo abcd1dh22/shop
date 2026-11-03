@@ -22,6 +22,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Warning
@@ -51,6 +52,7 @@ import androidx.core.content.FileProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.hawatraders.manager.data.OwnerSession
 import com.hawatraders.manager.data.image.ImageStore
+import com.hawatraders.manager.ui.components.IconLabel
 import com.hawatraders.manager.ui.components.LocalContainer
 import com.hawatraders.manager.ui.components.PasswordField
 import com.hawatraders.manager.ui.components.ProgressDialog
@@ -145,7 +147,7 @@ fun BackupScreen(
                 onClick = vm::create,
                 enabled = !vm.busy,
                 modifier = Modifier.fillMaxWidth().height(56.dp),
-            ) { Text(Strings.createBackup, style = MaterialTheme.typography.titleMedium) }
+            ) { IconLabel(Icons.Filled.Backup, Strings.createBackup) }
 
             val file = vm.readyFile
             AnimatedVisibility(visible = file != null) {

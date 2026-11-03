@@ -23,7 +23,7 @@ interface ProductDao {
         "SELECT * FROM products " +
             "WHERE (:category IS NULL OR category = :category) " +
             "AND (:favoritesOnly = 0 OR isFavorite = 1) " +
-            "AND (nameBn || ' ' || nameEn || ' ' || company) LIKE :pattern ESCAPE '\\' " +
+            "AND (nameBn || ' ' || nameEn || ' ' || company || ' ' || barcode) LIKE :pattern ESCAPE '\\' " +
             "ORDER BY isFavorite DESC, nameBn COLLATE NOCASE ASC"
     )
     fun search(pattern: String, category: String?, favoritesOnly: Boolean): Flow<List<ProductEntity>>
@@ -36,6 +36,9 @@ interface ProductDao {
 
     @Query("SELECT * FROM products ORDER BY id ASC")
     suspend fun getAll(): List<ProductEntity>
+
+    @Query("SELECT * FROM products WHERE barcode = :code AND barcode != '' ORDER BY id ASC LIMIT 1")
+    suspend fun findByBarcode(code: String): ProductEntity?
 
     @Query("SELECT * FROM products WHERE id = :id")
     suspend fun getById(id: Long): ProductEntity?

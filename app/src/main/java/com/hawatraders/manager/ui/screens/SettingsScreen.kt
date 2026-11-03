@@ -28,7 +28,9 @@ import androidx.compose.material.icons.filled.FileUpload
 import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Key
+import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.PriceChange
 import androidx.compose.material.icons.filled.TextFields
 import androidx.compose.material.icons.filled.UploadFile
@@ -64,6 +66,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.hawatraders.manager.ui.components.HeroHeader
+import com.hawatraders.manager.ui.components.IconLabel
 import com.hawatraders.manager.ui.components.IconBadge
 import com.hawatraders.manager.ui.components.LocalContainer
 import com.hawatraders.manager.ui.components.PasswordField
@@ -239,7 +242,7 @@ fun SettingsScreen(
                     },
                     shape = RoundedCornerShape(14.dp),
                     modifier = Modifier.fillMaxWidth().height(52.dp),
-                ) { Text(Strings.pickFile) }
+                ) { IconLabel(Icons.Filled.FolderOpen, Strings.pickFile) }
             }
             Spacer(Modifier.height(8.dp))
         }
@@ -307,7 +310,7 @@ private fun CreatePasswordCard(vm: SettingsViewModel) {
             modifier = Modifier.fillMaxWidth().height(52.dp),
         ) {
             if (vm.busy) CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp)
-            else Text(Strings.setPassword)
+            else IconLabel(Icons.Filled.Key, Strings.setPassword)
         }
     }
 }
@@ -340,7 +343,7 @@ private fun LoginCard(vm: SettingsViewModel, showBiometric: Boolean, onBiometric
             modifier = Modifier.fillMaxWidth().height(52.dp),
         ) {
             if (vm.busy) CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp)
-            else Text(Strings.unlock)
+            else IconLabel(Icons.Filled.LockOpen, Strings.unlock)
         }
         if (showBiometric) {
             Spacer(Modifier.height(10.dp))

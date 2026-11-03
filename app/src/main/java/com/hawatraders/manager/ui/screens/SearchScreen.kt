@@ -1,8 +1,8 @@
 package com.hawatraders.manager.ui.screens
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -24,12 +24,14 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Eco
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.Inventory2
@@ -46,16 +48,21 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.semantics.contentDescription
@@ -72,7 +79,6 @@ import com.hawatraders.manager.data.db.Category
 import com.hawatraders.manager.data.db.ProductEntity
 import com.hawatraders.manager.ui.components.CategoryBadge
 import com.hawatraders.manager.ui.components.EmptyState
-import com.hawatraders.manager.ui.components.HeroHeader
 import com.hawatraders.manager.ui.components.ProductImage
 import com.hawatraders.manager.ui.theme.PriceHugeTextStyle
 import com.hawatraders.manager.ui.theme.PriceTextStyle
@@ -82,11 +88,22 @@ import com.hawatraders.manager.util.Strings
 import com.hawatraders.manager.viewmodel.AppViewModelProvider
 import com.hawatraders.manager.viewmodel.SearchViewModel
 
+/** Result of a barcode scan, handed from the navigation host to the search screen. */
+sealed interface ScanOutcome {
+    data class Found(val productId: Long) : ScanOutcome
+    data object NotFound : ScanOutcome
+    /** Fallback from the label-text scan: search by this word. */
+    data class Query(val text: String) : ScanOutcome
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchScreen(
+    scanOutcome: ScanOutcome? = null,
+    onScanHandled: () -> Unit = {},
     vm: SearchViewModel = viewModel(factory = AppViewModelProvider.Factory),
 ) {
+    val snackbar = remember { SnackbarHostState() }
     val state by vm.uiState.collectAsStateWithLifecycle()
     val query by vm.query.collectAsStateWithLifecycle()
     val category by vm.category.collectAsStateWithLifecycle()
@@ -96,12 +113,44 @@ fun SearchScreen(
     val keyboard = LocalSoftwareKeyboardController.current
     val listState = rememberLazyListState()
 
+    // The title row slides away once the list is scrolled, leaving more room for products.
+    val atTop by remember {
+        derivedStateOf { listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset == 0 }
+    }
+
     // Hide the keyboard as soon as the user starts scrolling the results.
     LaunchedEffect(listState.isScrollInProgress) {
         if (listState.isScrollInProgress) focusManager.clearFocus()
     }
 
-    Scaffold(containerColor = MaterialTheme.colorScheme.background) { padding ->
+    LaunchedEffect(scanOutcome) {
+        when (scanOutcome) {
+            is ScanOutcome.Found -> {
+                // Clear filters so the scanned product is certainly in the list, then open it.
+                vm.onQueryChange("")
+                vm.onCategoryChange(null)
+                vm.setFavoritesOnly(false)
+                vm.select(scanOutcome.productId)
+                onScanHandled()
+            }
+            is ScanOutcome.Query -> {
+                vm.onCategoryChange(null)
+                vm.setFavoritesOnly(false)
+                vm.onQueryChange(scanOutcome.text)
+                onScanHandled()
+            }
+            ScanOutcome.NotFound -> {
+                onScanHandled()
+                snackbar.showSnackbar(Strings.scanNotFound)
+            }
+            null -> Unit
+        }
+    }
+
+    Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
+        snackbarHost = { SnackbarHost(snackbar) },
+    ) { padding ->
         Column(
             Modifier
                 .padding(padding)
@@ -109,68 +158,64 @@ fun SearchScreen(
                 .imePadding()
                 .fillMaxSize()
         ) {
-            HeroHeader(
-                title = Strings.appName,
-                subtitle = Strings.heroSubtitle,
-                leading = "🌾",
-                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 4.dp),
-            ) {
-                OutlinedTextField(
-                    value = query,
-                    onValueChange = vm::onQueryChange,
-                    placeholder = { Text(Strings.searchHint) },
-                    leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
-                    trailingIcon = {
-                        AnimatedVisibility(visible = query.isNotEmpty()) {
-                            IconButton(onClick = { vm.onQueryChange("") }) {
-                                Icon(Icons.Filled.Close, contentDescription = Strings.clearSearch)
-                            }
-                        }
-                    },
-                    singleLine = true,
-                    shape = RoundedCornerShape(24.dp),
-                    textStyle = MaterialTheme.typography.bodyLarge.copy(fontSize = 18.sp),
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                    keyboardActions = KeyboardActions(onSearch = { keyboard?.hide(); focusManager.clearFocus() }),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = MaterialTheme.colorScheme.surface,
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                        focusedBorderColor = Color(0xFFF2BE5C),
-                        unfocusedBorderColor = Color.Transparent,
-                    ),
-                    modifier = Modifier.fillMaxWidth(),
-                )
+            AnimatedVisibility(visible = atTop) {
+                TitleRow(totalCount = state.totalCount)
             }
+
+            OutlinedTextField(
+                value = query,
+                onValueChange = vm::onQueryChange,
+                placeholder = { Text(Strings.searchHint) },
+                leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+                trailingIcon = {
+                    AnimatedVisibility(visible = query.isNotEmpty()) {
+                        IconButton(onClick = { vm.onQueryChange("") }) {
+                            Icon(Icons.Filled.Close, contentDescription = Strings.clearSearch)
+                        }
+                    }
+                },
+                singleLine = true,
+                shape = RoundedCornerShape(16.dp),
+                textStyle = MaterialTheme.typography.bodyLarge.copy(fontSize = 18.sp),
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                keyboardActions = KeyboardActions(onSearch = { keyboard?.hide(); focusManager.clearFocus() }),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = Color.Transparent,
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
+            )
 
             LazyRow(
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 item {
-                    CategoryChip(Strings.filterAll, selected = category == null && !favOnly) {
+                    CategoryChip(
+                        label = "${Strings.filterAll} · ${Bn.number(state.totalCount)}",
+                        selected = category == null && !favOnly,
+                    ) {
                         vm.onCategoryChange(null)
                         vm.setFavoritesOnly(false)
                     }
                 }
                 item {
-                    CategoryChip("★ " + Strings.filterFavorites, selected = favOnly) {
-                        vm.setFavoritesOnly(!favOnly)
-                    }
+                    CategoryChip(
+                        label = "${Strings.filterFavorites} · ${Bn.number(state.favoriteCount)}",
+                        selected = favOnly,
+                        icon = Icons.Filled.Star,
+                    ) { vm.setFavoritesOnly(!favOnly) }
                 }
                 items(Category.entries) { c ->
-                    CategoryChip(c.labelBn, selected = category == c) {
-                        vm.onCategoryChange(if (category == c) null else c)
-                    }
+                    CategoryChip(
+                        label = "${c.labelBn} · ${Bn.number(state.counts[c] ?: 0)}",
+                        selected = category == c,
+                    ) { vm.onCategoryChange(if (category == c) null else c) }
                 }
-            }
-
-            if (!state.isLoading && state.products.isNotEmpty()) {
-                Text(
-                    Strings.resultCount(state.products.size),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 2.dp),
-                )
             }
 
             Box(Modifier.weight(1f).fillMaxWidth()) {
@@ -182,12 +227,12 @@ fun SearchScreen(
                         EmptyState(Icons.Outlined.SearchOff, Strings.emptyNoResults)
                     else -> LazyColumn(
                         state = listState,
-                        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 64.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
                         modifier = Modifier.fillMaxSize(),
                     ) {
                         items(state.products, key = { it.id }) { product ->
-                            ProductCard(
+                            ProductRow(
                                 product = product,
                                 onClick = { vm.select(product.id) },
                                 modifier = Modifier.animateItem(),
@@ -205,107 +250,152 @@ fun SearchScreen(
     }
 }
 
+/** Slim app title: leaf mark, name and the total number of products. */
+@Composable
+private fun TitleRow(totalCount: Int) {
+    val extra = MaterialTheme.extraColors
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(extra.heroStart),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(Icons.Filled.Eco, contentDescription = null, tint = extra.onHero, modifier = Modifier.size(24.dp))
+        }
+        Spacer(Modifier.width(12.dp))
+        Column {
+            Text(
+                Strings.appName,
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                if (totalCount > 0) Strings.resultCount(totalCount) else Strings.heroSubtitle,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun CategoryChip(label: String, selected: Boolean, onClick: () -> Unit) {
+private fun CategoryChip(
+    label: String,
+    selected: Boolean,
+    icon: ImageVector? = null,
+    onClick: () -> Unit,
+) {
     FilterChip(
         selected = selected,
         onClick = onClick,
-        label = { Text(label, style = MaterialTheme.typography.labelLarge) },
+        label = { Text(label, style = MaterialTheme.typography.labelLarge, maxLines = 1) },
+        leadingIcon = if (icon != null) {
+            { Icon(icon, contentDescription = null, modifier = Modifier.size(18.dp)) }
+        } else {
+            null
+        },
         shape = RoundedCornerShape(20.dp),
         colors = FilterChipDefaults.filterChipColors(
             selectedContainerColor = MaterialTheme.colorScheme.primary,
             selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+            selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimary,
         ),
     )
 }
 
+/**
+ * Compact price-list row: small photo, name + "company · unit" on the left, bold price on the right.
+ * An amber dot before the price means the price has not been changed for over 90 days.
+ */
 @Composable
-fun ProductCard(product: ProductEntity, onClick: () -> Unit, modifier: Modifier = Modifier) {
+fun ProductRow(product: ProductEntity, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val stale = product.priceUpdatedAt > 0L && Bn.ageDays(product.priceUpdatedAt) > 90L
     Card(
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
         modifier = modifier
             .fillMaxWidth()
-            .animateContentSize()
-            .clip(RoundedCornerShape(20.dp))
+            .clip(RoundedCornerShape(16.dp))
             .clickable(onClick = onClick),
     ) {
         Row(
-            modifier = Modifier.padding(12.dp),
-            verticalAlignment = Alignment.Top,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             ProductImage(
                 imageName = product.imagePath,
                 contentDescription = Strings.productImage,
-                iconSize = 36.dp,
-                modifier = Modifier.size(92.dp).clip(RoundedCornerShape(16.dp)),
+                iconSize = 28.dp,
+                modifier = Modifier.size(60.dp).clip(RoundedCornerShape(12.dp)),
             )
-            Spacer(Modifier.width(14.dp))
+            Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.Top) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         product.nameBn,
                         style = MaterialTheme.typography.titleMedium,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.weight(1f, fill = false),
                     )
                     if (product.isFavorite) {
-                        Spacer(Modifier.width(6.dp))
+                        Spacer(Modifier.width(4.dp))
                         Icon(
                             Icons.Filled.Star,
                             contentDescription = Strings.filterFavorites,
                             tint = MaterialTheme.colorScheme.tertiary,
-                            modifier = Modifier.size(20.dp),
+                            modifier = Modifier.size(16.dp),
                         )
                     }
                 }
-                if (product.company.isNotBlank()) {
+                val meta = listOf(product.company, Bn.digits(product.unit))
+                    .filter { it.isNotBlank() }
+                    .joinToString(" · ")
+                if (meta.isNotEmpty()) {
                     Text(
-                        product.company,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-                Spacer(Modifier.height(6.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    CategoryBadge(product.category)
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        Bn.digits(product.unit),
+                        meta,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
-                Spacer(Modifier.height(8.dp))
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                    Surface(
-                        color = MaterialTheme.extraColors.priceContainer,
-                        shape = RoundedCornerShape(12.dp),
-                    ) {
-                        Text(
-                            Bn.price(product.price),
-                            style = PriceTextStyle,
-                            color = MaterialTheme.extraColors.price,
-                            maxLines = 1,
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp),
-                        )
-                    }
+                Spacer(Modifier.height(4.dp))
+                CategoryBadge(product.category)
+            }
+            Spacer(Modifier.width(8.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (stale) {
+                    Box(
+                        Modifier
+                            .size(8.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.tertiary)
+                            .semantics { contentDescription = Strings.priceStale }
+                    )
+                    Spacer(Modifier.width(6.dp))
                 }
-                PriceDateLine(product, Modifier.align(Alignment.End))
+                Text(
+                    Bn.price(product.price),
+                    style = PriceTextStyle,
+                    color = MaterialTheme.extraColors.price,
+                    maxLines = 1,
+                )
             }
         }
     }
 }
 
-/** "দাম হালনাগাদ: ৩ দিন আগে"; turns amber after 90 days so stale prices stand out. */
+/** "দাম হালনাগাদ: ৩ দিন আগে"; amber after 90 days so stale prices stand out. */
 @Composable
 private fun PriceDateLine(product: ProductEntity, modifier: Modifier = Modifier) {
     if (product.priceUpdatedAt <= 0L) return

@@ -17,6 +17,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.FileDownload
+import androidx.compose.material.icons.filled.UploadFile
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -42,6 +45,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.hawatraders.manager.data.OwnerSession
 import com.hawatraders.manager.data.image.ImageStore
 import com.hawatraders.manager.ui.components.FormCard
+import com.hawatraders.manager.ui.components.IconLabel
 import com.hawatraders.manager.ui.components.LocalContainer
 import com.hawatraders.manager.ui.components.ProgressDialog
 import com.hawatraders.manager.util.Strings
@@ -108,12 +112,12 @@ fun ProductImportScreen(
                     onClick = vm::makeTemplate,
                     shape = RoundedCornerShape(14.dp),
                     modifier = Modifier.fillMaxWidth().height(48.dp),
-                ) { Text(Strings.importTemplate) }
+                ) { IconLabel(Icons.Filled.Description, Strings.importTemplate) }
                 OutlinedButton(
                     onClick = vm::makeExport,
                     shape = RoundedCornerShape(14.dp),
                     modifier = Modifier.fillMaxWidth().height(48.dp),
-                ) { Text(Strings.importExportCurrent) }
+                ) { IconLabel(Icons.Filled.FileDownload, Strings.importExportCurrent) }
             }
             Button(
                 onClick = {
@@ -126,7 +130,7 @@ fun ProductImportScreen(
                 },
                 shape = RoundedCornerShape(16.dp),
                 modifier = Modifier.fillMaxWidth().height(56.dp),
-            ) { Text(Strings.importPickSheet, style = MaterialTheme.typography.titleMedium) }
+            ) { IconLabel(Icons.Filled.UploadFile, Strings.importPickSheet) }
         }
     }
 
