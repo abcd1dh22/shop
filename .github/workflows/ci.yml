@@ -32,7 +32,20 @@ jobs:
 
       # Build first so compile errors are always reported and an APK is produced.
       - name: Build debug APK
-        run: gradle :app:assembleDebug --stacktrace
+        run: |
+          set -o pipefail
+          gradle :app:assembleDebug --console=plain 2>&1 | tee build.log
+
+      # Puts the real compiler errors on the run's Summary page (easy to read on a phone).
+      - name: Summarize build errors
+        if: failure()
+        run: |
+          {
+            echo '## Build errors'
+            echo '```'
+            grep -E -A3 '^e: |error:|What went wrong|Execution failed|Unresolved|Could not' build.log | head -100 || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
       # Lint is advisory: it must not stop the APK from being built and uploaded.
       - name: Lint
