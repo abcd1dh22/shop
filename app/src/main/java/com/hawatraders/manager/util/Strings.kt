@@ -19,6 +19,8 @@ object Strings {
     const val productImage = "পণ্যের ছবি"
 
     // Search
+    const val heroSubtitle = "পণ্যের দাম এক নজরে"
+    fun resultCount(n: Int) = "${Bn.number(n)}টি পণ্য"
     const val searchHint = "পণ্যের নাম লিখুন..."
     const val clearSearch = "লেখা মুছুন"
     const val filterAll = "সব"
@@ -47,6 +49,13 @@ object Strings {
         "অনেকবার ভুল হয়েছে। ${Bn.number(seconds)} সেকেন্ড পরে আবার চেষ্টা করুন।"
 
     // Settings menu
+    const val sectionOwner = "মালিকের টুলস"
+    const val sectionEveryone = "সবার জন্য"
+    const val ownerOpen = "মালিকের এলাকা খোলা আছে"
+    const val ownerLocked = "মালিকের এলাকা তালাবদ্ধ"
+    const val sectionPhoto = "ছবি"
+    const val sectionInfo = "পণ্যের তথ্য"
+    const val sectionPrice = "দাম ও একক"
     const val addProduct = "নতুন পণ্য যোগ করুন"
     const val addProductSub = "দাম ও ছবিসহ নতুন পণ্য"
     const val manageProducts = "পণ্য ব্যবস্থাপনা"

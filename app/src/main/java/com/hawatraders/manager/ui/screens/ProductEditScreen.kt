@@ -56,12 +56,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.hawatraders.manager.data.db.Category
 import com.hawatraders.manager.ui.components.FileImage
+import com.hawatraders.manager.ui.components.FormCard
 import com.hawatraders.manager.ui.components.LocalContainer
 import com.hawatraders.manager.util.Strings
 import com.hawatraders.manager.viewmodel.AppViewModelProvider
@@ -138,173 +140,182 @@ fun ProductEditScreen(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             // --- Photo ---
-            Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-                Box(contentAlignment = Alignment.Center) {
-                    FileImage(
-                        file = previewFile,
-                        contentDescription = Strings.productImage,
-                        iconSize = 48.dp,
-                        modifier = Modifier.size(160.dp).clip(RoundedCornerShape(20.dp)),
-                    )
-                    if (vm.imageBusy) CircularProgressIndicator()
-                }
-                Spacer(Modifier.height(12.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(
-                        onClick = {
-                            val uri = container.imageStore.newCameraUri()
-                            cameraUri = uri
-                            session.externalLaunch = true
-                            try {
-                                cameraLauncher.launch(uri)
-                            } catch (e: Exception) {
-                                session.externalLaunch = false
-                            }
-                        },
-                        enabled = !vm.imageBusy,
-                        modifier = Modifier.height(48.dp),
-                    ) {
-                        Icon(Icons.Filled.CameraAlt, contentDescription = null, modifier = Modifier.size(20.dp))
-                        Spacer(Modifier.width(6.dp))
-                        Text(Strings.takePhoto)
+            FormCard(Strings.sectionPhoto) {
+                Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Box(contentAlignment = Alignment.Center) {
+                        FileImage(
+                            file = previewFile,
+                            contentDescription = Strings.productImage,
+                            iconSize = 48.dp,
+                            modifier = Modifier.size(180.dp).clip(RoundedCornerShape(24.dp)),
+                        )
+                        if (vm.imageBusy) CircularProgressIndicator()
                     }
-                    OutlinedButton(
-                        onClick = {
-                            session.externalLaunch = true
-                            try {
-                                galleryLauncher.launch(
-                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                                )
-                            } catch (e: Exception) {
-                                session.externalLaunch = false
+                    Spacer(Modifier.height(12.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedButton(
+                            onClick = {
+                                val uri = container.imageStore.newCameraUri()
+                                cameraUri = uri
+                                session.externalLaunch = true
+                                try {
+                                    cameraLauncher.launch(uri)
+                                } catch (e: Exception) {
+                                    session.externalLaunch = false
+                                }
+                            },
+                            enabled = !vm.imageBusy,
+                            shape = RoundedCornerShape(14.dp),
+                            modifier = Modifier.height(48.dp),
+                        ) {
+                            Icon(Icons.Filled.CameraAlt, contentDescription = null, modifier = Modifier.size(20.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text(Strings.takePhoto)
+                        }
+                        OutlinedButton(
+                            onClick = {
+                                session.externalLaunch = true
+                                try {
+                                    galleryLauncher.launch(
+                                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                    )
+                                } catch (e: Exception) {
+                                    session.externalLaunch = false
+                                }
+                            },
+                            enabled = !vm.imageBusy,
+                            shape = RoundedCornerShape(14.dp),
+                            modifier = Modifier.height(48.dp),
+                        ) {
+                            Icon(Icons.Filled.PhotoLibrary, contentDescription = null, modifier = Modifier.size(20.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text(Strings.pickPhoto)
+                        }
+                        if (previewFile != null) {
+                            IconButton(onClick = vm::removeImage, modifier = Modifier.size(48.dp)) {
+                                Icon(Icons.Filled.Delete, contentDescription = Strings.removePhoto)
                             }
-                        },
-                        enabled = !vm.imageBusy,
-                        modifier = Modifier.height(48.dp),
-                    ) {
-                        Icon(Icons.Filled.PhotoLibrary, contentDescription = null, modifier = Modifier.size(20.dp))
-                        Spacer(Modifier.width(6.dp))
-                        Text(Strings.pickPhoto)
-                    }
-                    if (previewFile != null) {
-                        IconButton(onClick = vm::removeImage, modifier = Modifier.size(48.dp)) {
-                            Icon(Icons.Filled.Delete, contentDescription = Strings.removePhoto)
                         }
                     }
                 }
             }
 
-            // --- Text fields ---
-            OutlinedTextField(
-                value = vm.nameBn,
-                onValueChange = vm::onNameBn,
-                label = { Text(Strings.nameBn) },
-                isError = vm.errors.nameBn != null,
-                supportingText = if (vm.errors.nameBn != null) {
-                    { Text(vm.errors.nameBn!!) }
-                } else {
-                    null
-                },
-                singleLine = true,
-                shape = RoundedCornerShape(14.dp),
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                modifier = Modifier.fillMaxWidth(),
-            )
-            OutlinedTextField(
-                value = vm.nameEn,
-                onValueChange = { vm.nameEn = it },
-                label = { Text(Strings.nameEn) },
-                singleLine = true,
-                shape = RoundedCornerShape(14.dp),
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                modifier = Modifier.fillMaxWidth(),
-            )
-            OutlinedTextField(
-                value = vm.company,
-                onValueChange = { vm.company = it },
-                label = { Text(Strings.company) },
-                singleLine = true,
-                shape = RoundedCornerShape(14.dp),
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                modifier = Modifier.fillMaxWidth(),
-            )
-
-            var expanded by remember { mutableStateOf(false) }
-            ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
+            // --- Basic info ---
+            FormCard(Strings.sectionInfo) {
                 OutlinedTextField(
-                    value = vm.category.labelBn,
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text(Strings.category) },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                    value = vm.nameBn,
+                    onValueChange = vm::onNameBn,
+                    label = { Text(Strings.nameBn) },
+                    isError = vm.errors.nameBn != null,
+                    supportingText = if (vm.errors.nameBn != null) {
+                        { Text(vm.errors.nameBn!!) }
+                    } else {
+                        null
+                    },
+                    singleLine = true,
                     shape = RoundedCornerShape(14.dp),
-                    modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                    modifier = Modifier.fillMaxWidth(),
                 )
-                ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                    Category.entries.forEach { c ->
-                        DropdownMenuItem(
-                            text = { Text(c.labelBn) },
-                            onClick = {
-                                vm.categoryKey = c.key
-                                expanded = false
-                            },
+                OutlinedTextField(
+                    value = vm.nameEn,
+                    onValueChange = { vm.nameEn = it },
+                    label = { Text(Strings.nameEn) },
+                    singleLine = true,
+                    shape = RoundedCornerShape(14.dp),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                OutlinedTextField(
+                    value = vm.company,
+                    onValueChange = { vm.company = it },
+                    label = { Text(Strings.company) },
+                    singleLine = true,
+                    shape = RoundedCornerShape(14.dp),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+
+                var expanded by remember { mutableStateOf(false) }
+                ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
+                    OutlinedTextField(
+                        value = vm.category.labelBn,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text(Strings.category) },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                        shape = RoundedCornerShape(14.dp),
+                        modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
+                    )
+                    ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                        Category.entries.forEach { c ->
+                            DropdownMenuItem(
+                                text = { Text(c.labelBn) },
+                                onClick = {
+                                    vm.categoryKey = c.key
+                                    expanded = false
+                                },
+                            )
+                        }
+                    }
+                }
+            }
+
+            // --- Price & unit ---
+            FormCard(Strings.sectionPrice) {
+                OutlinedTextField(
+                    value = vm.priceText,
+                    onValueChange = vm::onPrice,
+                    label = { Text(Strings.price) },
+                    prefix = { Text("৳ ", style = MaterialTheme.typography.headlineSmall) },
+                    textStyle = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                    isError = vm.errors.price != null,
+                    supportingText = if (vm.errors.price != null) {
+                        { Text(vm.errors.price!!) }
+                    } else {
+                        null
+                    },
+                    singleLine = true,
+                    shape = RoundedCornerShape(14.dp),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                OutlinedTextField(
+                    value = vm.unit,
+                    onValueChange = vm::onUnit,
+                    label = { Text(Strings.unit) },
+                    isError = vm.errors.unit != null,
+                    supportingText = if (vm.errors.unit != null) {
+                        { Text(vm.errors.unit!!) }
+                    } else {
+                        null
+                    },
+                    singleLine = true,
+                    shape = RoundedCornerShape(14.dp),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Row(
+                    Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Strings.unitSuggestions.forEach { s ->
+                        FilterChip(
+                            selected = vm.unit == s,
+                            onClick = { vm.onUnit(s) },
+                            label = { Text(s) },
                         )
                     }
                 }
             }
 
-            OutlinedTextField(
-                value = vm.unit,
-                onValueChange = vm::onUnit,
-                label = { Text(Strings.unit) },
-                isError = vm.errors.unit != null,
-                supportingText = if (vm.errors.unit != null) {
-                    { Text(vm.errors.unit!!) }
-                } else {
-                    null
-                },
-                singleLine = true,
-                shape = RoundedCornerShape(14.dp),
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Row(
-                Modifier.horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Strings.unitSuggestions.forEach { s ->
-                    FilterChip(
-                        selected = vm.unit == s,
-                        onClick = { vm.onUnit(s) },
-                        label = { Text(s) },
-                    )
-                }
-            }
-
-            OutlinedTextField(
-                value = vm.priceText,
-                onValueChange = vm::onPrice,
-                label = { Text(Strings.price) },
-                prefix = { Text("৳ ") },
-                isError = vm.errors.price != null,
-                supportingText = if (vm.errors.price != null) {
-                    { Text(vm.errors.price!!) }
-                } else {
-                    null
-                },
-                singleLine = true,
-                shape = RoundedCornerShape(14.dp),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
-                modifier = Modifier.fillMaxWidth(),
-            )
-
-            Spacer(Modifier.height(4.dp))
             Button(
                 onClick = vm::save,
                 enabled = !vm.saving && !vm.imageBusy,
+                shape = RoundedCornerShape(16.dp),
                 modifier = Modifier.fillMaxWidth().height(56.dp),
             ) {
                 if (vm.saving) CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp)

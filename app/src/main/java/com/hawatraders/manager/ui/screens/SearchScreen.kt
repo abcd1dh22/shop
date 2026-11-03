@@ -2,6 +2,7 @@ package com.hawatraders.manager.ui.screens
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -36,16 +37,16 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -53,6 +54,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.semantics.contentDescription
@@ -69,6 +71,7 @@ import com.hawatraders.manager.data.db.Category
 import com.hawatraders.manager.data.db.ProductEntity
 import com.hawatraders.manager.ui.components.CategoryBadge
 import com.hawatraders.manager.ui.components.EmptyState
+import com.hawatraders.manager.ui.components.HeroHeader
 import com.hawatraders.manager.ui.components.ProductImage
 import com.hawatraders.manager.ui.theme.PriceHugeTextStyle
 import com.hawatraders.manager.ui.theme.PriceTextStyle
@@ -96,28 +99,7 @@ fun SearchScreen(
         if (listState.isScrollInProgress) focusManager.clearFocus()
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("🌾", fontSize = 26.sp)
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            Strings.appName,
-                            style = MaterialTheme.typography.titleLarge,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background,
-                ),
-            )
-        },
-        containerColor = MaterialTheme.colorScheme.background,
-    ) { padding ->
+    Scaffold(containerColor = MaterialTheme.colorScheme.background) { padding ->
         Column(
             Modifier
                 .padding(padding)
@@ -125,46 +107,60 @@ fun SearchScreen(
                 .imePadding()
                 .fillMaxSize()
         ) {
-            OutlinedTextField(
-                value = query,
-                onValueChange = vm::onQueryChange,
-                placeholder = { Text(Strings.searchHint) },
-                leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
-                trailingIcon = {
-                    AnimatedVisibility(visible = query.isNotEmpty()) {
-                        IconButton(onClick = { vm.onQueryChange("") }) {
-                            Icon(Icons.Filled.Close, contentDescription = Strings.clearSearch)
+            HeroHeader(
+                title = Strings.appName,
+                subtitle = Strings.heroSubtitle,
+                leading = "🌾",
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 4.dp),
+            ) {
+                OutlinedTextField(
+                    value = query,
+                    onValueChange = vm::onQueryChange,
+                    placeholder = { Text(Strings.searchHint) },
+                    leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+                    trailingIcon = {
+                        AnimatedVisibility(visible = query.isNotEmpty()) {
+                            IconButton(onClick = { vm.onQueryChange("") }) {
+                                Icon(Icons.Filled.Close, contentDescription = Strings.clearSearch)
+                            }
                         }
-                    }
-                },
-                singleLine = true,
-                shape = RoundedCornerShape(28.dp),
-                textStyle = MaterialTheme.typography.bodyLarge.copy(fontSize = 18.sp),
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                keyboardActions = KeyboardActions(onSearch = { keyboard?.hide(); focusManager.clearFocus() }),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-            )
+                    },
+                    singleLine = true,
+                    shape = RoundedCornerShape(24.dp),
+                    textStyle = MaterialTheme.typography.bodyLarge.copy(fontSize = 18.sp),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    keyboardActions = KeyboardActions(onSearch = { keyboard?.hide(); focusManager.clearFocus() }),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                        focusedBorderColor = Color(0xFFF2BE5C),
+                        unfocusedBorderColor = Color.Transparent,
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
 
             LazyRow(
-                contentPadding = PaddingValues(horizontal = 16.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 item {
-                    FilterChip(
-                        selected = category == null,
-                        onClick = { vm.onCategoryChange(null) },
-                        label = { Text(Strings.filterAll) },
-                    )
+                    CategoryChip(Strings.filterAll, selected = category == null) { vm.onCategoryChange(null) }
                 }
                 items(Category.entries) { c ->
-                    FilterChip(
-                        selected = category == c,
-                        onClick = { vm.onCategoryChange(if (category == c) null else c) },
-                        label = { Text(c.labelBn) },
-                    )
+                    CategoryChip(c.labelBn, selected = category == c) {
+                        vm.onCategoryChange(if (category == c) null else c)
+                    }
                 }
+            }
+
+            if (!state.isLoading && state.products.isNotEmpty()) {
+                Text(
+                    Strings.resultCount(state.products.size),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 2.dp),
+                )
             }
 
             Box(Modifier.weight(1f).fillMaxWidth()) {
@@ -176,7 +172,7 @@ fun SearchScreen(
                         EmptyState(Icons.Outlined.SearchOff, Strings.emptyNoResults)
                     else -> LazyColumn(
                         state = listState,
-                        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 24.dp),
+                        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                         modifier = Modifier.fillMaxSize(),
                     ) {
@@ -199,28 +195,45 @@ fun SearchScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CategoryChip(label: String, selected: Boolean, onClick: () -> Unit) {
+    FilterChip(
+        selected = selected,
+        onClick = onClick,
+        label = { Text(label, style = MaterialTheme.typography.labelLarge) },
+        shape = RoundedCornerShape(20.dp),
+        colors = FilterChipDefaults.filterChipColors(
+            selectedContainerColor = MaterialTheme.colorScheme.primary,
+            selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+        ),
+    )
+}
+
 @Composable
 fun ProductCard(product: ProductEntity, onClick: () -> Unit, modifier: Modifier = Modifier) {
     Card(
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
         modifier = modifier
             .fillMaxWidth()
             .animateContentSize()
-            .clip(RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(20.dp))
             .clickable(onClick = onClick),
     ) {
         Row(
             modifier = Modifier.padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
+            verticalAlignment = Alignment.Top,
         ) {
             ProductImage(
                 imageName = product.imagePath,
                 contentDescription = Strings.productImage,
-                modifier = Modifier.size(72.dp).clip(RoundedCornerShape(12.dp)),
+                iconSize = 36.dp,
+                modifier = Modifier.size(92.dp).clip(RoundedCornerShape(16.dp)),
             )
-            Spacer(Modifier.width(12.dp))
+            Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
                 Text(
                     product.nameBn,
@@ -237,26 +250,34 @@ fun ProductCard(product: ProductEntity, onClick: () -> Unit, modifier: Modifier 
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
-                Spacer(Modifier.height(4.dp))
+                Spacer(Modifier.height(6.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     CategoryBadge(product.category)
                     Spacer(Modifier.width(8.dp))
                     Text(
-                        product.unit,
+                        Bn.digits(product.unit),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
+                Spacer(Modifier.height(8.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    Surface(
+                        color = MaterialTheme.extraColors.priceContainer,
+                        shape = RoundedCornerShape(12.dp),
+                    ) {
+                        Text(
+                            Bn.price(product.price),
+                            style = PriceTextStyle,
+                            color = MaterialTheme.extraColors.price,
+                            maxLines = 1,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp),
+                        )
+                    }
+                }
             }
-            Spacer(Modifier.width(8.dp))
-            Text(
-                Bn.price(product.price),
-                style = PriceTextStyle,
-                color = MaterialTheme.extraColors.price,
-                maxLines = 1,
-            )
         }
     }
 }
@@ -285,7 +306,7 @@ private fun ProductDetailSheet(product: ProductEntity, onDismiss: () -> Unit) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(240.dp)
-                    .clip(RoundedCornerShape(20.dp)),
+                    .clip(RoundedCornerShape(24.dp)),
             )
             Spacer(Modifier.height(16.dp))
             Text(
@@ -306,7 +327,7 @@ private fun ProductDetailSheet(product: ProductEntity, onDismiss: () -> Unit) {
                 CategoryBadge(product.category)
                 Spacer(Modifier.width(10.dp))
                 Text(
-                    "${Strings.detailUnit}: ${product.unit}",
+                    "${Strings.detailUnit}: ${Bn.digits(product.unit)}",
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -322,8 +343,8 @@ private fun ProductDetailSheet(product: ProductEntity, onDismiss: () -> Unit) {
             }
             Spacer(Modifier.height(20.dp))
             Surface(
-                color = MaterialTheme.colorScheme.primaryContainer,
-                shape = RoundedCornerShape(20.dp),
+                color = MaterialTheme.extraColors.priceContainer,
+                shape = RoundedCornerShape(24.dp),
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text(

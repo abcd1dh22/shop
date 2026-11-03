@@ -72,6 +72,10 @@ val DarkColors = darkColorScheme(
 /** Colors outside the Material scheme: the price accent and per-category badge colors. */
 class ExtraColors(
     val price: Color,
+    val priceContainer: Color,
+    val heroStart: Color,
+    val heroEnd: Color,
+    val onHero: Color,
     private val badges: Map<Category, Pair<Color, Color>>,
 ) {
     /** (background, foreground) for a category badge. */
@@ -80,6 +84,10 @@ class ExtraColors(
 
 val LightExtraColors = ExtraColors(
     price = Color(0xFF0F3D22),
+    priceContainer = Color(0xFFE3F0E6),
+    heroStart = Color(0xFF14532D),
+    heroEnd = Color(0xFF1F7A43),
+    onHero = Color(0xFFFFFFFF),
     badges = mapOf(
         Category.PESTICIDE to (Color(0xFFFDE2D3) to Color(0xFF8A3B12)),
         Category.FUNGICIDE to (Color(0xFFE3DDF7) to Color(0xFF4A3A8C)),
@@ -92,6 +100,10 @@ val LightExtraColors = ExtraColors(
 
 val DarkExtraColors = ExtraColors(
     price = Color(0xFFF2BE5C),
+    priceContainer = Color(0xFF2A2614),
+    heroStart = Color(0xFF0F3D22),
+    heroEnd = Color(0xFF1A5A33),
+    onHero = Color(0xFFE8F5EC),
     badges = mapOf(
         Category.PESTICIDE to (Color(0xFF5A2A10) to Color(0xFFFFD2B8)),
         Category.FUNGICIDE to (Color(0xFF3F356B) to Color(0xFFDCD2FF)),

@@ -224,7 +224,7 @@ private fun ManageRow(
                         CategoryBadge(product.category)
                         Spacer(Modifier.width(8.dp))
                         Text(
-                            product.unit,
+                            Bn.digits(product.unit),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
