@@ -17,15 +17,22 @@ class ProductRepository(
 
     fun observeCount(): Flow<Int> = dao.observeCount()
 
-    fun observeSearch(query: String, category: Category?): Flow<List<ProductEntity>> =
-        dao.search(SearchQuery.toLikePattern(query), category?.key)
+    fun observeSearch(
+        query: String,
+        category: Category?,
+        favoritesOnly: Boolean = false,
+    ): Flow<List<ProductEntity>> =
+        dao.search(SearchQuery.toLikePattern(query), category?.key, favoritesOnly)
 
     suspend fun getById(id: Long): ProductEntity? = dao.getById(id)
+
+    suspend fun getAll(): List<ProductEntity> = dao.getAll()
 
     /**
      * Inserts (id == 0) or updates a product. [stagedImagePath] is a freshly compressed photo to
      * attach; [removeExistingImage] drops the current one. Old image files are deleted only after
      * the database write succeeds; a new file is removed again if the write fails.
+     * priceUpdatedAt moves forward only when the price really changed.
      */
     suspend fun save(
         product: ProductEntity,
@@ -41,7 +48,11 @@ class ProductRepository(
                 removeExistingImage -> null
                 else -> oldName
             }
-            val toSave = product.copy(imagePath = finalImage, updatedAt = System.currentTimeMillis())
+            val now = System.currentTimeMillis()
+            val existing = if (product.id == 0L) null else dao.getById(product.id)
+            val priceTime =
+                if (existing == null || existing.price != product.price) now else existing.priceUpdatedAt
+            val toSave = product.copy(imagePath = finalImage, updatedAt = now, priceUpdatedAt = priceTime)
             val id = if (product.id == 0L) {
                 dao.insert(toSave)
             } else {
@@ -58,6 +69,13 @@ class ProductRepository(
 
     suspend fun updatePrice(id: Long, price: Double) =
         dao.updatePrice(id, price, System.currentTimeMillis())
+
+    suspend fun setFavorite(id: Long, favorite: Boolean) = dao.setFavorite(id, favorite)
+
+    /** Writes already-computed products (bulk price change) in one transaction. */
+    suspend fun applyPrices(changed: List<ProductEntity>) = withContext(Dispatchers.IO) {
+        dao.updateAll(changed)
+    }
 
     suspend fun delete(product: ProductEntity) = withContext(Dispatchers.IO) {
         dao.delete(product)

@@ -11,21 +11,22 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface ProductDao {
 
-    @Query("SELECT * FROM products ORDER BY nameBn COLLATE NOCASE ASC")
+    @Query("SELECT * FROM products ORDER BY isFavorite DESC, nameBn COLLATE NOCASE ASC")
     fun observeAll(): Flow<List<ProductEntity>>
 
     /**
      * [pattern] comes from SearchQuery.toLikePattern (already trimmed, escaped with '\').
      * SQLite LIKE is case-insensitive for Latin text; Bengali has no case.
-     * A null [category] means "all categories".
+     * A null [category] means "all categories". Favorites are listed first.
      */
     @Query(
         "SELECT * FROM products " +
             "WHERE (:category IS NULL OR category = :category) " +
+            "AND (:favoritesOnly = 0 OR isFavorite = 1) " +
             "AND (nameBn || ' ' || nameEn || ' ' || company) LIKE :pattern ESCAPE '\\' " +
-            "ORDER BY nameBn COLLATE NOCASE ASC"
+            "ORDER BY isFavorite DESC, nameBn COLLATE NOCASE ASC"
     )
-    fun search(pattern: String, category: String?): Flow<List<ProductEntity>>
+    fun search(pattern: String, category: String?, favoritesOnly: Boolean): Flow<List<ProductEntity>>
 
     @Query("SELECT * FROM products WHERE category = :category ORDER BY nameBn COLLATE NOCASE ASC")
     fun observeByCategory(category: String): Flow<List<ProductEntity>>
@@ -48,8 +49,15 @@ interface ProductDao {
     @Update
     suspend fun update(product: ProductEntity)
 
-    @Query("UPDATE products SET price = :price, updatedAt = :updatedAt WHERE id = :id")
-    suspend fun updatePrice(id: Long, price: Double, updatedAt: Long)
+    /** Room runs a list update inside a single transaction. */
+    @Update
+    suspend fun updateAll(products: List<ProductEntity>)
+
+    @Query("UPDATE products SET price = :price, updatedAt = :now, priceUpdatedAt = :now WHERE id = :id")
+    suspend fun updatePrice(id: Long, price: Double, now: Long)
+
+    @Query("UPDATE products SET isFavorite = :favorite WHERE id = :id")
+    suspend fun setFavorite(id: Long, favorite: Boolean)
 
     @Delete
     suspend fun delete(product: ProductEntity)

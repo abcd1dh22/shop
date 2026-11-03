@@ -20,6 +20,8 @@ object AppViewModelProvider {
         initializer { ChangePasswordViewModel(container().settingsRepository) }
         initializer { BackupViewModel(container().backupManager) }
         initializer { ImportViewModel(container().backupManager) }
+        initializer { BulkPriceViewModel(container().productRepository) }
+        initializer { ProductImportViewModel(container().productImporter) }
     }
 
     private fun CreationExtras.container(): AppContainer =

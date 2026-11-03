@@ -263,7 +263,7 @@ fun HeroHeader(
                         title,
                         style = MaterialTheme.typography.titleLarge,
                         color = extra.onHero,
-                        maxLines = 1,
+                        maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
                     if (subtitle != null) {

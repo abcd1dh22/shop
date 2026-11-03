@@ -43,6 +43,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -262,6 +263,14 @@ fun ProductEditScreen(
                         }
                     }
                 }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        Strings.favoriteSwitch,
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Switch(checked = vm.isFavorite, onCheckedChange = { vm.isFavorite = it })
+                }
             }
 
             // --- Price & unit ---
@@ -310,6 +319,19 @@ fun ProductEditScreen(
                         )
                     }
                 }
+            }
+
+            // --- Usage note ---
+            FormCard(Strings.sectionNote) {
+                OutlinedTextField(
+                    value = vm.note,
+                    onValueChange = { if (it.length <= 2000) vm.note = it },
+                    label = { Text(Strings.noteHint) },
+                    minLines = 3,
+                    maxLines = 8,
+                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
 
             Button(

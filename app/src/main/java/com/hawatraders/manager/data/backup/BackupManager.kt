@@ -72,6 +72,9 @@ class BackupManager(
                             put("price", p.price)
                             put("image", imageName ?: JSONObject.NULL)
                             put("updatedAt", p.updatedAt)
+                            put("priceUpdatedAt", p.priceUpdatedAt)
+                            put("isFavorite", p.isFavorite)
+                            put("note", p.note)
                         }
                     )
                 }
@@ -265,6 +268,9 @@ class BackupManager(
                         price = price,
                         imagePath = image,
                         updatedAt = o.optLong("updatedAt", now),
+                        priceUpdatedAt = o.optLong("priceUpdatedAt", o.optLong("updatedAt", now)),
+                        isFavorite = o.optBoolean("isFavorite", false),
+                        note = o.optString("note", "").take(2000),
                     )
                 )
             }

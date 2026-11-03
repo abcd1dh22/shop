@@ -22,7 +22,7 @@ data class SearchUiState(
     val isLoading: Boolean = true,
 )
 
-/** Search text, category filter and the selected product survive rotation and process death. */
+/** Search text, filters and the selected product survive rotation and process death. */
 @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
 class SearchViewModel(
     repo: ProductRepository,
@@ -35,6 +35,9 @@ class SearchViewModel(
     private val _category = MutableStateFlow(Category.fromKeyOrNull(handle.get<String>(KEY_CATEGORY)))
     val category: StateFlow<Category?> = _category
 
+    private val _favoritesOnly = MutableStateFlow(handle.get<Boolean>(KEY_FAVORITES) ?: false)
+    val favoritesOnly: StateFlow<Boolean> = _favoritesOnly
+
     private val _selectedId = MutableStateFlow(handle.get<Long>(KEY_SELECTED))
     val selectedId: StateFlow<Long?> = _selectedId
 
@@ -43,8 +46,9 @@ class SearchViewModel(
             // 250ms debounce for typing, but clearing the box reacts immediately.
             _query.debounce { if (it.isBlank()) 0L else 250L },
             _category,
-        ) { q, c -> q to c }
-            .flatMapLatest { (q, c) -> repo.observeSearch(q, c) }
+            _favoritesOnly,
+        ) { q, c, f -> Triple(q, c, f) }
+            .flatMapLatest { (q, c, f) -> repo.observeSearch(q, c, f) }
             .combine(repo.observeCount()) { list, count -> SearchUiState(list, count, isLoading = false) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SearchUiState())
 
@@ -58,6 +62,11 @@ class SearchViewModel(
         handle[KEY_CATEGORY] = category?.key
     }
 
+    fun setFavoritesOnly(value: Boolean) {
+        _favoritesOnly.value = value
+        handle[KEY_FAVORITES] = value
+    }
+
     fun select(id: Long?) {
         _selectedId.value = id
         handle[KEY_SELECTED] = id
@@ -66,6 +75,7 @@ class SearchViewModel(
     private companion object {
         const val KEY_QUERY = "query"
         const val KEY_CATEGORY = "category"
+        const val KEY_FAVORITES = "favorites"
         const val KEY_SELECTED = "selected"
     }
 }

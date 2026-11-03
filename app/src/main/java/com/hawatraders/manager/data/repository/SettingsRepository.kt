@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Base64
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.intPreferencesKey
@@ -42,6 +43,18 @@ class SettingsRepository(context: Context) {
 
     val hasPassword: Flow<Boolean> =
         data.map { it[HASH] != null && it[SALT] != null }.distinctUntilChanged()
+
+    val largeText: Flow<Boolean> = data.map { it[LARGE_TEXT] ?: false }.distinctUntilChanged()
+
+    val biometricEnabled: Flow<Boolean> = data.map { it[BIOMETRIC] ?: false }.distinctUntilChanged()
+
+    suspend fun setBiometricEnabled(enabled: Boolean) {
+        store.edit { it[BIOMETRIC] = enabled }
+    }
+
+    suspend fun setLargeText(enabled: Boolean) {
+        store.edit { it[LARGE_TEXT] = enabled }
+    }
 
     suspend fun createPassword(password: CharArray) {
         storeNewPassword(password)
@@ -122,6 +135,8 @@ class SettingsRepository(context: Context) {
         val SALT = stringPreferencesKey("pw_salt")
         val ITER = intPreferencesKey("pw_iterations")
         val FAILS = intPreferencesKey("failed_attempts")
+        val LARGE_TEXT = booleanPreferencesKey("large_text")
+        val BIOMETRIC = booleanPreferencesKey("biometric_unlock")
         val LOCK_UNTIL = longPreferencesKey("lock_until")
     }
 }

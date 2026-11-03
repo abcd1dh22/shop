@@ -25,9 +25,13 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.FileUpload
+import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.PriceChange
+import androidx.compose.material.icons.filled.TextFields
+import androidx.compose.material.icons.filled.UploadFile
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -40,16 +44,21 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
+import androidx.fragment.app.FragmentActivity
+import kotlinx.coroutines.launch
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -61,7 +70,9 @@ import com.hawatraders.manager.ui.components.PasswordField
 import com.hawatraders.manager.ui.components.ProgressDialog
 import com.hawatraders.manager.ui.components.SecureScreenEffect
 import com.hawatraders.manager.ui.theme.extraColors
+import com.hawatraders.manager.util.BiometricHelper
 import com.hawatraders.manager.util.Strings
+import com.hawatraders.manager.util.findActivity
 import com.hawatraders.manager.viewmodel.AppViewModelProvider
 import com.hawatraders.manager.viewmodel.ImportState
 import com.hawatraders.manager.viewmodel.ImportViewModel
@@ -73,6 +84,8 @@ fun SettingsScreen(
     onManageProducts: () -> Unit,
     onChangePassword: () -> Unit,
     onBackup: () -> Unit,
+    onBulkPrice: () -> Unit,
+    onImportProducts: () -> Unit,
     vm: SettingsViewModel = viewModel(factory = AppViewModelProvider.Factory),
     importVm: ImportViewModel = viewModel(factory = AppViewModelProvider.Factory),
 ) {
@@ -80,7 +93,33 @@ fun SettingsScreen(
     val session = LocalContainer.current.session
     val hasPassword by vm.hasPassword.collectAsStateWithLifecycle()
     val unlocked by vm.unlocked.collectAsStateWithLifecycle()
+    val largeText by vm.largeText.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val activity = context.findActivity() as? FragmentActivity
+    val biometricEnabled by vm.biometricEnabled.collectAsStateWithLifecycle()
+    val bioAvailable = remember(unlocked) { BiometricHelper.isAvailable(context) }
+    val canBio = biometricEnabled && bioAvailable
+
+    /** Shows the system fingerprint dialog; [onSuccess] runs only after a real match. */
+    fun launchBiometric(onSuccess: () -> Unit) {
+        val a = activity ?: return
+        session.externalLaunch = true // the dialog must not trigger the auto-lock
+        BiometricHelper.prompt(
+            activity = a,
+            onSuccess = {
+                session.externalLaunch = false
+                onSuccess()
+            },
+            onError = { code ->
+                session.externalLaunch = false
+                if (BiometricHelper.isLockout(code)) {
+                    scope.launch { snackbar.showSnackbar(Strings.bioLockout) }
+                }
+            },
+        )
+    }
 
     LaunchedEffect(importVm.message) {
         importVm.message?.let {
@@ -129,17 +168,52 @@ fun SettingsScreen(
                     CircularProgressIndicator()
                 }
                 hasPassword == false -> CreatePasswordCard(vm)
-                !unlocked -> LoginCard(vm)
+                !unlocked -> LoginCard(
+                    vm = vm,
+                    showBiometric = canBio,
+                    onBiometric = { launchBiometric { vm.unlockByBiometric() } },
+                )
                 else -> {
                     SectionLabel(Strings.sectionOwner)
                     MenuItem(Icons.Filled.AddCircle, Strings.addProduct, Strings.addProductSub, onAddProduct)
                     MenuItem(Icons.Filled.Inventory2, Strings.manageProducts, Strings.manageProductsSub, onManageProducts)
+                    MenuItem(Icons.Filled.PriceChange, Strings.bulkTitle, Strings.bulkSub, onBulkPrice)
+                    MenuItem(Icons.Filled.UploadFile, Strings.importProductsTitle, Strings.importProductsSub, onImportProducts)
                     MenuItem(Icons.Filled.Key, Strings.changePassword, Strings.changePasswordSub, onChangePassword)
                     MenuItem(Icons.Filled.Backup, Strings.backup, Strings.backupSub, onBackup)
+                    BiometricCard(
+                        checked = biometricEnabled,
+                        onChange = { on ->
+                            when {
+                                !on -> vm.setBiometricEnabled(false)
+                                !BiometricHelper.isAvailable(context) ->
+                                    scope.launch { snackbar.showSnackbar(Strings.bioNotAvailable) }
+                                else -> launchBiometric {
+                                    vm.setBiometricEnabled(true)
+                                    scope.launch { snackbar.showSnackbar(Strings.bioEnabledMsg) }
+                                }
+                            }
+                        },
+                    )
                 }
             }
 
             SectionLabel(Strings.sectionEveryone)
+            SettingsCard {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconBadge(Icons.Filled.TextFields)
+                    Spacer(Modifier.width(14.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(Strings.largeText, style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            Strings.largeTextSub,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Switch(checked = largeText, onCheckedChange = vm::setLargeText)
+                }
+            }
             SettingsCard {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     IconBadge(Icons.Filled.FileUpload)
@@ -239,7 +313,7 @@ private fun CreatePasswordCard(vm: SettingsViewModel) {
 }
 
 @Composable
-private fun LoginCard(vm: SettingsViewModel) {
+private fun LoginCard(vm: SettingsViewModel, showBiometric: Boolean, onBiometric: () -> Unit) {
     SettingsCard {
         Text(Strings.ownerArea, style = MaterialTheme.typography.titleLarge)
         Spacer(Modifier.height(4.dp))
@@ -267,6 +341,38 @@ private fun LoginCard(vm: SettingsViewModel) {
         ) {
             if (vm.busy) CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp)
             else Text(Strings.unlock)
+        }
+        if (showBiometric) {
+            Spacer(Modifier.height(10.dp))
+            OutlinedButton(
+                onClick = onBiometric,
+                enabled = !vm.busy,
+                shape = RoundedCornerShape(14.dp),
+                modifier = Modifier.fillMaxWidth().height(52.dp),
+            ) {
+                Icon(Icons.Filled.Fingerprint, contentDescription = null, modifier = Modifier.size(22.dp))
+                Spacer(Modifier.width(8.dp))
+                Text(Strings.bioButton)
+            }
+        }
+    }
+}
+
+@Composable
+private fun BiometricCard(checked: Boolean, onChange: (Boolean) -> Unit) {
+    SettingsCard {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            IconBadge(Icons.Filled.Fingerprint)
+            Spacer(Modifier.width(14.dp))
+            Column(Modifier.weight(1f)) {
+                Text(Strings.bioSwitchTitle, style = MaterialTheme.typography.titleMedium)
+                Text(
+                    Strings.bioSwitchSub,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Switch(checked = checked, onCheckedChange = onChange)
         }
     }
 }

@@ -66,5 +66,21 @@ object Bn {
         return parts.joinToString(",") + "," + last3
     }
 
+    /** Whole days since [timestamp] (never negative). */
+    fun ageDays(timestamp: Long, now: Long = System.currentTimeMillis()): Long =
+        (now - timestamp).coerceAtLeast(0L) / 86_400_000L
+
+    /** "আজ", "গতকাল", "৫ দিন আগে", "৩ মাস আগে", "২ বছর আগে". */
+    fun ageText(timestamp: Long, now: Long = System.currentTimeMillis()): String {
+        val d = ageDays(timestamp, now)
+        return when {
+            d == 0L -> "আজ"
+            d == 1L -> "গতকাল"
+            d < 30L -> "${number(d)} দিন আগে"
+            d < 365L -> "${number(d / 30L)} মাস আগে"
+            else -> "${number(d / 365L)} বছর আগে"
+        }
+    }
+
     fun todayStamp(): String = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
 }

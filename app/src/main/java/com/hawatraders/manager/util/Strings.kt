@@ -145,4 +145,78 @@ object Strings {
     const val errReadFile = "ফাইলটি পড়া যায়নি।"
     const val errRestore = "তথ্য বসানো যায়নি। আগের তথ্য অপরিবর্তিত আছে।"
     const val errUnsupportedVersion = "এই ব্যাকআপ ফাইলের সংস্করণ সমর্থিত নয়।"
+
+    // ---- v2 features ----
+    const val filterFavorites = "পছন্দের"
+    const val favoriteAdd = "পছন্দের তালিকায় যোগ করুন"
+    const val favoriteRemove = "পছন্দের তালিকা থেকে সরান"
+    const val favoriteSwitch = "পছন্দের পণ্য (তালিকার সবার আগে দেখাবে)"
+    fun priceDate(text: String) = "দাম হালনাগাদ: $text"
+    const val sectionNote = "ব্যবহারের নির্দেশনা"
+    const val noteHint = "মাত্রা, প্রয়োগের নিয়ম, সতর্কতা"
+    const val largeText = "বড় লেখার মোড"
+    const val largeTextSub = "দোকানে সহজে পড়ার জন্য সব লেখা বড় হবে"
+
+    // Bulk price change
+    const val bulkTitle = "একসাথে দাম বদল"
+    const val bulkSub = "সব বা বাছাই করা পণ্যের দাম শতাংশ বা টাকায় বাড়ান/কমান"
+    const val bulkWhich = "কোন পণ্য"
+    const val bulkCompanyHint = "কোম্পানির নাম (ফাঁকা থাকলে সব)"
+    const val bulkHow = "কীভাবে বদলাবেন"
+    const val bulkIncrease = "বাড়ান"
+    const val bulkDecrease = "কমান"
+    const val bulkPercent = "শতাংশ (%)"
+    const val bulkTaka = "টাকা (৳)"
+    const val bulkAmount = "পরিমাণ"
+    const val bulkAmountInvalid = "সঠিক পরিমাণ লিখুন (০ এর বেশি)"
+    const val bulkRoundNote = "নতুন দাম পূর্ণ টাকায় গোল করা হবে।"
+    const val bulkPreview = "প্রিভিউ"
+    const val bulkNone = "কোনো পণ্য মেলেনি"
+    fun bulkAffected(n: Int) = "${Bn.number(n)}টি পণ্যের দাম বদলাবে"
+    fun bulkMore(n: Int) = "…আরও ${Bn.number(n)}টি"
+    const val bulkApply = "প্রয়োগ করুন"
+    const val bulkConfirmTitle = "দাম বদল নিশ্চিত করুন"
+    fun bulkConfirmBody(n: Int) =
+        "${Bn.number(n)}টি পণ্যের দাম বদলে যাবে। আগের দামে ফেরানো যাবে না, তাই আগে ব্যাকআপ নিয়ে রাখতে পারেন।"
+    fun bulkDone(n: Int) = "${Bn.number(n)}টি পণ্যের দাম হালনাগাদ হয়েছে"
+
+    // CSV / Excel import
+    const val importProductsTitle = "CSV/Excel থেকে ইমপোর্ট"
+    const val importProductsSub = "ফাইল থেকে অনেক পণ্য একবারে যোগ বা দাম হালনাগাদ করুন"
+    const val importHelp =
+        "ফাইলের প্রথম সারিতে কলামের নাম থাকতে হবে।\n" +
+            "আবশ্যক: নাম, দাম\n" +
+            "ঐচ্ছিক: ইংরেজি নাম, কোম্পানি, ধরন, একক, নির্দেশনা\n\n" +
+            "একই নাম ও কোম্পানির পণ্য আগে থেকে থাকলে তার তথ্য হালনাগাদ হবে, না থাকলে নতুন যোগ হবে। " +
+            "কিছু মোছা হবে না। ছবি ইমপোর্ট হয় না।"
+    const val importTemplate = "নমুনা ফাইল (CSV)"
+    const val importExportCurrent = "বর্তমান পণ্য (CSV)"
+    const val importPickSheet = "CSV/Excel ফাইল বাছাই করুন"
+    const val importReading = "ফাইল পড়া হচ্ছে..."
+    const val importApplying = "পণ্য সংরক্ষণ হচ্ছে..."
+    const val importPreviewTitle = "ইমপোর্টের সারসংক্ষেপ"
+    fun importPlan(newCount: Int, updateCount: Int) =
+        "নতুন যোগ হবে: ${Bn.number(newCount)}টি\nহালনাগাদ হবে: ${Bn.number(updateCount)}টি"
+    fun importSkipped(n: Int) = "বাদ পড়েছে (ত্রুটি): ${Bn.number(n)}টি সারি"
+    fun importLine(line: Int, msg: String) = "সারি ${Bn.number(line)}: $msg"
+    fun importApplied(n: Int) = "ইমপোর্ট সম্পন্ন: ${Bn.number(n)}টি পণ্য"
+    const val importNothing = "ইমপোর্ট করার মতো সঠিক সারি নেই।"
+    const val errMissingColumns = "প্রথম সারিতে “নাম” ও “দাম” কলাম থাকতে হবে।"
+    const val errEmptyFile = "ফাইলে কোনো পণ্য পাওয়া যায়নি।"
+    const val errXls = "পুরোনো .xls ফাইল সমর্থিত নয়। Excel-এ Save As করে .xlsx অথবা CSV বানান।"
+    const val errTooManyRows = "ফাইলে অনেক বেশি সারি (সর্বোচ্চ ২০,০০০)।"
+    const val rowNoName = "নাম নেই"
+    const val rowBadPrice = "দাম ঠিক নেই"
+    const val rowDuplicate = "ফাইলে একই পণ্য আগেই আছে"
+
+    // Fingerprint unlock
+    const val bioTitle = "মালিকের এলাকা খুলুন"
+    const val bioSubtitle = "আঙুলের ছাপ দিয়ে নিশ্চিত করুন"
+    const val bioUsePassword = "পাসওয়ার্ড দিন"
+    const val bioButton = "ফিঙ্গারপ্রিন্ট দিয়ে খুলুন"
+    const val bioSwitchTitle = "ফিঙ্গারপ্রিন্ট দিয়ে খুলুন"
+    const val bioSwitchSub = "ফোনে যাদের আঙুলের ছাপ সেট করা আছে, তারা সবাই মালিকের এলাকা খুলতে পারবে।"
+    const val bioNotAvailable = "এই ফোনে আঙুলের ছাপ সেট করা নেই। আগে ফোনের সেটিংসে সেট করুন।"
+    const val bioLockout = "অনেকবার ভুল হয়েছে। পাসওয়ার্ড দিয়ে খুলুন।"
+    const val bioEnabledMsg = "ফিঙ্গারপ্রিন্ট আনলক চালু হয়েছে"
 }

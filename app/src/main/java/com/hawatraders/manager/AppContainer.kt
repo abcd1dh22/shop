@@ -5,6 +5,7 @@ import com.hawatraders.manager.data.OwnerSession
 import com.hawatraders.manager.data.backup.BackupManager
 import com.hawatraders.manager.data.db.AppDatabase
 import com.hawatraders.manager.data.image.ImageStore
+import com.hawatraders.manager.data.importer.ProductImporter
 import com.hawatraders.manager.data.repository.ProductRepository
 import com.hawatraders.manager.data.repository.SettingsRepository
 
@@ -17,5 +18,6 @@ class AppContainer(context: Context) {
     val settingsRepository = SettingsRepository(appContext)
     val productRepository by lazy { ProductRepository(database.productDao(), imageStore) }
     val backupManager by lazy { BackupManager(appContext, database, imageStore) }
+    val productImporter by lazy { ProductImporter(appContext, database) }
     val session = OwnerSession()
 }

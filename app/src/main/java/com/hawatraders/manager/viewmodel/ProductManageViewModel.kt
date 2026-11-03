@@ -61,5 +61,17 @@ class ProductManageViewModel(private val repo: ProductRepository) : ViewModel() 
         }
     }
 
+    fun toggleFavorite(product: ProductEntity) {
+        viewModelScope.launch {
+            try {
+                repo.setFavorite(product.id, !product.isFavorite)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                message = Strings.saveFailed
+            }
+        }
+    }
+
     fun consumeMessage() { message = null }
 }

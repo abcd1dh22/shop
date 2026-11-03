@@ -34,6 +34,29 @@ class SettingsViewModel(
 
     val unlocked: StateFlow<Boolean> = session.unlocked
 
+    val largeText: StateFlow<Boolean> = settings.largeText
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
+    fun setLargeText(enabled: Boolean) {
+        viewModelScope.launch { settings.setLargeText(enabled) }
+    }
+
+    val biometricEnabled: StateFlow<Boolean> = settings.biometricEnabled
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
+    fun setBiometricEnabled(enabled: Boolean) {
+        viewModelScope.launch { settings.setBiometricEnabled(enabled) }
+    }
+
+    /** Called after a successful fingerprint check; only honoured if the owner turned the feature on. */
+    fun unlockByBiometric() {
+        if (hasPassword.value == true && biometricEnabled.value) {
+            password = ""
+            passwordError = null
+            session.unlock()
+        }
+    }
+
     var password by mutableStateOf("")
     var confirm by mutableStateOf("")
     var passwordError by mutableStateOf<String?>(null)

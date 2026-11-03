@@ -31,6 +31,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.material.icons.outlined.SearchOff
 import androidx.compose.material3.Card
@@ -90,6 +91,7 @@ fun SearchScreen(
     val query by vm.query.collectAsStateWithLifecycle()
     val category by vm.category.collectAsStateWithLifecycle()
     val selectedId by vm.selectedId.collectAsStateWithLifecycle()
+    val favOnly by vm.favoritesOnly.collectAsStateWithLifecycle()
     val focusManager = LocalFocusManager.current
     val keyboard = LocalSoftwareKeyboardController.current
     val listState = rememberLazyListState()
@@ -145,7 +147,15 @@ fun SearchScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 item {
-                    CategoryChip(Strings.filterAll, selected = category == null) { vm.onCategoryChange(null) }
+                    CategoryChip(Strings.filterAll, selected = category == null && !favOnly) {
+                        vm.onCategoryChange(null)
+                        vm.setFavoritesOnly(false)
+                    }
+                }
+                item {
+                    CategoryChip("★ " + Strings.filterFavorites, selected = favOnly) {
+                        vm.setFavoritesOnly(!favOnly)
+                    }
                 }
                 items(Category.entries) { c ->
                     CategoryChip(c.labelBn, selected = category == c) {
@@ -235,12 +245,24 @@ fun ProductCard(product: ProductEntity, onClick: () -> Unit, modifier: Modifier 
             )
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
-                Text(
-                    product.nameBn,
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
+                Row(verticalAlignment = Alignment.Top) {
+                    Text(
+                        product.nameBn,
+                        style = MaterialTheme.typography.titleMedium,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
+                    )
+                    if (product.isFavorite) {
+                        Spacer(Modifier.width(6.dp))
+                        Icon(
+                            Icons.Filled.Star,
+                            contentDescription = Strings.filterFavorites,
+                            tint = MaterialTheme.colorScheme.tertiary,
+                            modifier = Modifier.size(20.dp),
+                        )
+                    }
+                }
                 if (product.company.isNotBlank()) {
                     Text(
                         product.company,
@@ -277,9 +299,23 @@ fun ProductCard(product: ProductEntity, onClick: () -> Unit, modifier: Modifier 
                         )
                     }
                 }
+                PriceDateLine(product, Modifier.align(Alignment.End))
             }
         }
     }
+}
+
+/** "দাম হালনাগাদ: ৩ দিন আগে"; turns amber after 90 days so stale prices stand out. */
+@Composable
+private fun PriceDateLine(product: ProductEntity, modifier: Modifier = Modifier) {
+    if (product.priceUpdatedAt <= 0L) return
+    val stale = Bn.ageDays(product.priceUpdatedAt) > 90L
+    Text(
+        Strings.priceDate(Bn.ageText(product.priceUpdatedAt)),
+        style = MaterialTheme.typography.labelSmall,
+        color = if (stale) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = modifier.padding(top = 2.dp),
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -341,6 +377,24 @@ private fun ProductDetailSheet(product: ProductEntity, onDismiss: () -> Unit) {
                     textAlign = TextAlign.Center,
                 )
             }
+            if (product.note.isNotBlank()) {
+                Spacer(Modifier.height(16.dp))
+                Surface(
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Column(Modifier.padding(16.dp)) {
+                        Text(
+                            Strings.sectionNote,
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text(product.note, style = MaterialTheme.typography.bodyLarge)
+                    }
+                }
+            }
             Spacer(Modifier.height(20.dp))
             Surface(
                 color = MaterialTheme.extraColors.priceContainer,
@@ -358,6 +412,8 @@ private fun ProductDetailSheet(product: ProductEntity, onDismiss: () -> Unit) {
                         .semantics { contentDescription = Bn.price(product.price) },
                 )
             }
+            Spacer(Modifier.height(8.dp))
+            PriceDateLine(product)
         }
     }
 }

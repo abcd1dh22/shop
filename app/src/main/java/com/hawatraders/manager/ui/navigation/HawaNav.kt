@@ -34,6 +34,8 @@ import androidx.navigation.navArgument
 import com.hawatraders.manager.AppContainer
 import com.hawatraders.manager.ui.components.LocalContainer
 import com.hawatraders.manager.ui.screens.BackupScreen
+import com.hawatraders.manager.ui.screens.BulkPriceScreen
+import com.hawatraders.manager.ui.screens.ProductImportScreen
 import com.hawatraders.manager.ui.screens.ChangePasswordScreen
 import com.hawatraders.manager.ui.screens.ProductEditScreen
 import com.hawatraders.manager.ui.screens.ProductManageScreen
@@ -49,12 +51,14 @@ object Routes {
     const val EDIT_PATTERN = "edit?productId={productId}"
     const val CHANGE_PASSWORD = "change_password"
     const val BACKUP = "backup"
+    const val BULK = "bulk_price"
+    const val IMPORT_PRODUCTS = "import_products"
 
     /** Everything that belongs to the Settings tab; leaving this set locks the owner area. */
-    val settingsFlow = setOf(SETTINGS, PRODUCTS, EDIT_PATTERN, CHANGE_PASSWORD, BACKUP)
+    val settingsFlow = setOf(SETTINGS, PRODUCTS, EDIT_PATTERN, CHANGE_PASSWORD, BACKUP, BULK, IMPORT_PRODUCTS)
 
     /** Screens that must never be visible while locked. */
-    val protectedScreens = setOf(PRODUCTS, EDIT_PATTERN, CHANGE_PASSWORD, BACKUP)
+    val protectedScreens = setOf(PRODUCTS, EDIT_PATTERN, CHANGE_PASSWORD, BACKUP, BULK, IMPORT_PRODUCTS)
 }
 
 private data class Tab(val route: String, val label: String, val icon: ImageVector)
@@ -140,6 +144,8 @@ private fun AppScaffold(container: AppContainer) {
                     onManageProducts = { navController.navigate(Routes.PRODUCTS) },
                     onChangePassword = { navController.navigate(Routes.CHANGE_PASSWORD) },
                     onBackup = { navController.navigate(Routes.BACKUP) },
+                    onBulkPrice = { navController.navigate(Routes.BULK) },
+                    onImportProducts = { navController.navigate(Routes.IMPORT_PRODUCTS) },
                 )
             }
             composable(Routes.PRODUCTS) {
@@ -165,6 +171,12 @@ private fun AppScaffold(container: AppContainer) {
             }
             composable(Routes.BACKUP) {
                 BackupScreen(onBack = { navController.popBackStack() })
+            }
+            composable(Routes.BULK) {
+                BulkPriceScreen(onBack = { navController.popBackStack() })
+            }
+            composable(Routes.IMPORT_PRODUCTS) {
+                ProductImportScreen(onBack = { navController.popBackStack() })
             }
         }
     }

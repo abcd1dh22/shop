@@ -44,6 +44,8 @@ class ProductEditViewModel(
     var company by handle.saveable { mutableStateOf("") }
     var categoryKey by handle.saveable { mutableStateOf(Category.PESTICIDE.key) }
     var unit by handle.saveable { mutableStateOf("") }
+    var isFavorite by handle.saveable { mutableStateOf(false) }
+    var note by handle.saveable { mutableStateOf("") }
     var priceText by handle.saveable { mutableStateOf("") }
     var existingImage by handle.saveable { mutableStateOf("") }
     var stagedImagePath by handle.saveable { mutableStateOf("") }
@@ -72,6 +74,8 @@ class ProductEditViewModel(
                         company = p.company
                         categoryKey = p.category.key
                         unit = p.unit
+                        isFavorite = p.isFavorite
+                        note = p.note
                         priceText = Bn.editable(p.price)
                         existingImage = p.imagePath ?: ""
                         loaded = true
@@ -142,6 +146,8 @@ class ProductEditViewModel(
                     unit = unit.trim(),
                     price = price,
                     imagePath = existingImage.ifBlank { null },
+                    isFavorite = isFavorite,
+                    note = note.trim(),
                 )
                 repo.save(entity, stagedImagePath.ifBlank { null }, removeExisting)
                 stagedImagePath = ""

@@ -23,6 +23,8 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.material.icons.outlined.SearchOff
 import androidx.compose.material3.AlertDialog
@@ -151,6 +153,7 @@ fun ProductManageScreen(
                             ManageRow(
                                 product = p,
                                 onEdit = { onEdit(p.id) },
+                                onFavorite = { vm.toggleFavorite(p) },
                                 onPrice = { priceId = p.id },
                                 onDelete = { deleteId = p.id },
                                 modifier = Modifier.animateItem(),
@@ -195,6 +198,7 @@ fun ProductManageScreen(
 private fun ManageRow(
     product: ProductEntity,
     onEdit: () -> Unit,
+    onFavorite: () -> Unit,
     onPrice: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
@@ -240,6 +244,14 @@ private fun ManageRow(
                 )
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                IconButton(onClick = onFavorite, modifier = Modifier.size(48.dp)) {
+                    Icon(
+                        imageVector = if (product.isFavorite) Icons.Filled.Star else Icons.Outlined.StarBorder,
+                        contentDescription = if (product.isFavorite) Strings.favoriteRemove else Strings.favoriteAdd,
+                        tint = if (product.isFavorite) MaterialTheme.colorScheme.tertiary
+                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
                 TextButton(onClick = onEdit, modifier = Modifier.height(48.dp)) { Text(Strings.edit) }
                 TextButton(onClick = onPrice, modifier = Modifier.height(48.dp)) { Text(Strings.quickPrice) }
                 TextButton(onClick = onDelete, modifier = Modifier.height(48.dp)) {
